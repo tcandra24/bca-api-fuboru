@@ -18,22 +18,19 @@ use App\Http\Controllers\PegawaiController;
 |
 */
 
-Route::group(['prefix' => 'v1'], function () {
+Route::post('token', [ApiController::class, 'authenticate']);
+// Route::post('register', [ApiController::class, 'register']);
 
-    Route::post('token', [ApiController::class, 'authenticate']);
-    // Route::post('register', [ApiController::class, 'register']);
-    
-    Route::group(['middleware' => ['jwt.verify']], function() {
-        Route::get('logout', [ApiController::class, 'logout']);
-        Route::get('get_user', [ApiController::class, 'get_user']);
-        Route::get('pegawai', [PegawaiController::class, 'index']);
-        Route::post('invoice', [InvoiceController::class, 'index']);
-        // Route::get('products', [ProductController::class, 'index']);
-        // Route::get('products/{id}', [ProductController::class, 'show']);
-        // Route::post('create', [ProductController::class, 'store']);
-        // Route::put('update/{product}',  [ProductController::class, 'update']);
-        // Route::delete('delete/{product}',  [ProductController::class, 'destroy']);
-    });
+Route::group(['middleware' => ['jwt.verify']], function() {
+    Route::get('logout', [ApiController::class, 'logout']);
+    Route::get('get_user', [ApiController::class, 'get_user']);
+    Route::get('pegawai', [PegawaiController::class, 'index']);
+    Route::post('invoice', [InvoiceController::class, 'index']);
+    // Route::get('products', [ProductController::class, 'index']);
+    // Route::get('products/{id}', [ProductController::class, 'show']);
+    // Route::post('create', [ProductController::class, 'store']);
+    // Route::put('update/{product}',  [ProductController::class, 'update']);
+    // Route::delete('delete/{product}',  [ProductController::class, 'destroy']);
 });
 
 Route::fallback(function() {
