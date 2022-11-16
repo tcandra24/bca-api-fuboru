@@ -22,9 +22,9 @@ Route::post('token', [ApiController::class, 'authenticate']);
 // Route::post('register', [ApiController::class, 'register']);
 
 Route::group(['middleware' => ['jwt.verify']], function() {
-    Route::get('logout', [ApiController::class, 'logout']);
-    Route::get('get_user', [ApiController::class, 'get_user']);
-    Route::get('pegawai', [PegawaiController::class, 'index']);
+    // Route::get('logout', [ApiController::class, 'logout']);
+    // Route::get('get_user', [ApiController::class, 'get_user']);
+    // Route::get('pegawai', [PegawaiController::class, 'index']);
     Route::post('invoice', [InvoiceController::class, 'index']);
     // Route::get('products', [ProductController::class, 'index']);
     // Route::get('products/{id}', [ProductController::class, 'show']);
