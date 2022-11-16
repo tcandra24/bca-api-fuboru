@@ -18,7 +18,7 @@ use App\Http\Controllers\PegawaiController;
 |
 */
 
-Route::group(['prefix' => 'v1', 'middleware' => 'throttle:100,5'], function () {
+Route::group(['prefix' => 'v1'], function () {
 
     Route::post('token', [ApiController::class, 'authenticate']);
     // Route::post('register', [ApiController::class, 'register']);
@@ -34,4 +34,8 @@ Route::group(['prefix' => 'v1', 'middleware' => 'throttle:100,5'], function () {
         // Route::put('update/{product}',  [ProductController::class, 'update']);
         // Route::delete('delete/{product}',  [ProductController::class, 'destroy']);
     });
+});
+
+Route::fallback(function() {
+    abort(404, 'API Resource Not Found.');
 });
