@@ -26,6 +26,7 @@ Route::group(['middleware' => ['jwt.verify']], function() {
     // Route::get('get_user', [ApiController::class, 'get_user']);
     // Route::get('pegawai', [PegawaiController::class, 'index']);
     Route::post('invoice', [InvoiceController::class, 'index']);
+    Route::post('payment', [InvoiceController::class, 'payment']);
     // Route::get('products', [ProductController::class, 'index']);
     // Route::get('products/{id}', [ProductController::class, 'show']);
     // Route::post('create', [ProductController::class, 'store']);
