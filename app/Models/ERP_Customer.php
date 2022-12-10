@@ -5,16 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ERP_Invoice extends Model
+class ERP_Customer extends Model
 {
     use HasFactory;
     public $timestamps = false;
 
     protected $connection = 'pgsql_erp';
-    protected $table = 'masterjual';
+    protected $table = 'pelanggan';
 
-    public function customer()
+    public function invoices()
     {
-        return $this->belongsTo(ERP_Customer::class);
+        return $this->hasMany(ERP_Invoice::class);
     }
 }

@@ -18,20 +18,11 @@ use App\Http\Controllers\PegawaiController;
 |
 */
 
-Route::post('token', [ApiController::class, 'authenticate']);
-// Route::post('register', [ApiController::class, 'register']);
+Route::post('access-token/b2b', [ApiController::class, 'authenticate']);
 
-Route::group(['middleware' => ['jwt.verify']], function() {
-    // Route::get('logout', [ApiController::class, 'logout']);
-    // Route::get('get_user', [ApiController::class, 'get_user']);
-    // Route::get('pegawai', [PegawaiController::class, 'index']);
-    Route::post('invoice', [InvoiceController::class, 'index']);
+Route::group(['middleware' => ['jwt.verify'], 'prefix' => 'transfer-va'], function() {
+    Route::post('inquiry', [InvoiceController::class, 'inquiry']);
     Route::post('payment', [InvoiceController::class, 'payment']);
-    // Route::get('products', [ProductController::class, 'index']);
-    // Route::get('products/{id}', [ProductController::class, 'show']);
-    // Route::post('create', [ProductController::class, 'store']);
-    // Route::put('update/{product}',  [ProductController::class, 'update']);
-    // Route::delete('delete/{product}',  [ProductController::class, 'destroy']);
 });
 
 Route::fallback(function() {

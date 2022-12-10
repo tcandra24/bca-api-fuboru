@@ -2,85 +2,143 @@
 
 namespace App\Http\Controllers;
 
+use JWTAuth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use App\Models\ERP_Invoice;
+use App\Models\ERP_Customer;
 
 class InvoiceController extends Controller
 {
-    public function index(Request $request)
+    public function inquiry(Request $request)
     {
         try {
             $this->validate($request,  [
-                'virtual_account' => 'required|string'
+                'virtualAccountNo' => 'required|string'
             ]);
 
-            $virtual_account = trim($request->virtual_account);
-            $invoice = ERP_Invoice::select(
-                'masterjual.virtual_account', 
+            $virtual_account = trim($request->virtualAccountNo);
+            $customer = ERP_Customer::select('kode' ,'perusahaan AS name', 'kode_area_telp', 'telp', 'virtual_account')
+            ->where('virtual_account', '=', $virtual_account);
+
+            if(!$customer->exists()) {
+                throw new \Exception('Virtual account does not found');
+            }
+            
+            $customer = $customer->first();
+            $invoices = ERP_Invoice::select(
                 'masterjual.kode_nota', 
-                'masterjual.cust AS pelanggan', 
-                'pelanggan.perusahaan'
+                'pelanggan.perusahaan',
+                'masterjual.sisa_bayar',
+                'masterjual.tgl'
             )
             ->selectRaw('CAST(masterjual.sisa_bayar AS decimal) AS total_bayar')
                 ->join('pelanggan', 'pelanggan.kode', '=', 'masterjual.cust')
-                ->where('masterjual.virtual_account', '=', $virtual_account)
-                ->where('masterjual.sisa_bayar', '>', 0);
+                ->where('pelanggan.kode', '=', $customer->kode)
+                ->where('masterjual.sisa_bayar', '>', 0)
+                ->orderBy('tgl')
+                ->get();
 
-            if(!$invoice->exists()) {
-                throw new \Exception('Virtual account does not found');
+            if($invoices->count() < 1){
+                throw new \Exception('Invoice data not found');
             }
 
+            $total_amount = $invoices->sum('total_bayar');
+            
+            JWTAuth::invalidate($request->token);
+            
             return response()->json([
-                'success' => true,
-                'message' =>  [
-                    'invoice' => $invoice->first()
-                ]
+                'success'               => true,
+                'responseMessage'       => 'Successfull',
+                'virtualAccountNo'      => $customer->virtual_account,
+                'virtualAccountName'    => $customer->name,
+                'virtualAccountPhone'   => $customer->kode_area_telp . ' - ' . $customer->telp,
+                'billDetails'           => $invoices,
+                'totalAmount'           => 
+                [
+                    "value"     => $total_amount,
+                    "currency"  => "IDR"
+                ],
             ], 200, [], JSON_NUMERIC_CHECK);
+            
         } catch (\Exception $e) {
+            JWTAuth::invalidate($request->token);
+            
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'responseMessage' => $e->getMessage(),
             ], 400);
         }
-        
     }
 
     public function payment(Request $request){
         try {
             $this->validate($request,  [
-                'virtual_account' => 'required|string',
-                'pay_amount'   => 'required|numeric'
+                'virtualAccountNo'      => 'required|string',
+                'virtualAccountName'    => 'required|string',
+                'paidAmount'            => 'required|numeric'
             ]);
 
-            $virtual_account = trim($request->virtual_account);
-            $pay_amount = $request->pay_amount;
+            $virtual_account = trim($request->virtualAccountNo);
+            $customer_name = trim($request->virtualAccountName);
+            $pay_amount = $request->paidAmount;
 
-            $invoice = ERP_Invoice::select('kode_nota')
-            ->selectRaw('CAST(terbayar AS decimal) AS terbayar')
-            ->selectRaw('CAST(sisa_bayar AS decimal) AS sisa_bayar')
-                ->where('virtual_account', '=', $virtual_account)
-                ->where('masterjual.sisa_bayar', '>', 0);
+            $customer = ERP_Customer::select('kode' ,'perusahaan AS name', 'kode_area_telp', 'telp', 'virtual_account')
+            ->where('virtual_account', '=', $virtual_account)
+            ->where('perusahaan', '=', $customer_name);
 
-            if(!$invoice->exists()) {
+            if(!$customer->exists()) {
                 throw new \Exception('Virtual account does not found');
             }
+            
+            $customer = $customer->first();
 
-            $invoice = $invoice->first();
-            ERP_Invoice::where('virtual_account', '=', $virtual_account)
-            ->update([
-                'terbayar' => $invoice->terbayar + $pay_amount,
-                'sisa_bayar' => $invoice->sisa_bayar - $pay_amount
-            ]);
+            $invoices = ERP_Invoice::select('masterjual.kode_nota')
+                ->selectRaw('CAST(masterjual.terbayar AS decimal) AS terbayar')
+                ->selectRaw('CAST(masterjual.sisa_bayar AS decimal) AS sisa_bayar')
+                ->selectRaw('CAST(masterjual.total_bayar AS decimal) AS total_bayar')
+                ->join('pelanggan', 'pelanggan.kode', '=', 'masterjual.cust')
+                ->where('pelanggan.kode', '=', $customer->kode)
+                ->where('masterjual.sisa_bayar', '>', 0)
+                ->orderBy('tgl')
+                ->get();
+            
+            if($invoices->count() < 1){
+                throw new \Exception('Invoice data not found');
+            }
+            
+            foreach($invoices as $invoice) {
+                if($pay_amount > 0){
+                    if($pay_amount < $invoice->total_bayar){
+                        $amount = $pay_amount;
+                    } elseif($invoice->sisa_bayar < $pay_amount){
+                        $amount = $invoice->sisa_bayar;
+                    }else{
+                        $amount = $invoice->total_bayar;
+                    }
+    
+                    ERP_Invoice::where('kode_nota', '=', $invoice->kode_nota)
+                        ->update([
+                            'terbayar' => $invoice->terbayar + $amount,
+                            'sisa_bayar' => $invoice->sisa_bayar - $amount
+                        ]);
+
+                    $pay_amount -= $amount;
+                }
+            }
+            
+            JWTAuth::invalidate($request->token);
 
             return response()->json([
-                'success' => true,
-                'message' =>  'Payment Success'
+                'success'           => true,
+                'responseMessage'   => 'Payment Success'
             ], 200);
         } catch (\Exception $e) {
+            JWTAuth::invalidate($request->token);
+            
             return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
+                'success'           => false,
+                'responseMessage'   => $e->getMessage()
             ], 400);
         }
     }
