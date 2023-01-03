@@ -11,5 +11,6 @@ class ApiTesting extends Controller
         return response()->json([
             'domain' => request()->root(),
         ], 400);
+        
     }
 }
