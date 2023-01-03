@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ApiTesting;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PegawaiController;
 
@@ -19,6 +20,8 @@ use App\Http\Controllers\PegawaiController;
 */
 
 Route::post('access-token/b2b', [ApiController::class, 'authenticate']);
+
+Route::get('testing', [ApiTesting::class, 'index']);
 
 Route::group(['middleware' => ['jwt.verify'], 'prefix' => 'transfer-va'], function() {
     Route::post('inquiry', [InvoiceController::class, 'inquiry']);
